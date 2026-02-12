@@ -11,7 +11,7 @@ function calculateInterval(durationStr: string) {
   return ((minutes * 60) + seconds) * 1000 / 3; // Dividimos entre 3
 }
 interface ChatInterfaceProps {
-  videoId: string;
+  videoId: string; 
   userName: string; // <--- Nuevo: Recibimos el nombre del usuario logueado
   id: string; // <--- Nuevo: Recibimos el ID del video (puede ser igual a videoId o un ID interno)
 }

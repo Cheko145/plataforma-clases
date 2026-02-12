@@ -1,15 +1,18 @@
 import VideoPlayer from '@/components/VideoPlayer';
 import ChatInterface from '@/components/ChatInterface';
-
-// Definimos params como una Promesa (Requisito de Next.js 15)
+import { auth } from "@/auth"; // <--- Importamos auth
+import { redirect } from "next/navigation";
 interface PageProps {
   params: Promise<{ id: string ,videoId: string}>;
 }
 
 export default async function ClaseDinamica({ params }: PageProps) {
-  // AQUÍ ESTÁ EL CAMBIO: Esperamos a que la promesa se resuelva
+  const session = await auth();
+  if (!session || !session.user) {
+    redirect("/login");
+  }
   const { id,videoId } = await params; 
-  console.log("🛣️ Parámetros de ruta recibidos:", { id,videoId });
+
   return (
     <main className="min-h-screen bg-slate-100 p-6">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">

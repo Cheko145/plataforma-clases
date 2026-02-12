@@ -15,8 +15,6 @@ const { messages, id, videoId } = await req.json();  console.log("📨 Mensajes 
     return new Response('Video ID is required', { status: 400 });
   }
   const targetYoutubeId = videoId;
-  // 2. Obtenemos la transcripción
-  // Esto ocurre en el servidor, oculto al usuario.
   let transcript = '';
 
   try {
@@ -24,17 +22,12 @@ const { messages, id, videoId } = await req.json();  console.log("📨 Mensajes 
     console.log("✅ Transcripción obtenida. Longitud:", transcript.length);
   } catch (error) {
     console.error("❌ Error obteniendo transcripción:", error);
-    // Opcional: Podrías dejar transcript vacío o avisar a la IA que falló
     transcript = "No se pudo obtener la transcripción del video.";
   }
 
-  // 3. Llamada a la IA (Descomentada y corregida)
   const result = streamText({
     
-    model: google('gemini-3-flash-preview'), // Modelo corregido (versión estable y rápida)
-    
-
-    // El system prompt es donde ocurre la "magia" del contexto
+    model: google('gemini-3-flash-preview'),    
     system: `
       Eres un profesor asistente experto.
       
@@ -58,10 +51,7 @@ const { messages, id, videoId } = await req.json();  console.log("📨 Mensajes 
       3. Sé conciso y didáctico.
       4. Responde en el mismo idioma en que se pregunta.
     `,
-    // Convertimos los mensajes al formato "Core" que espera el SDK nuevo
     messages: await convertToModelMessages(messages),
   });
-  // 4. Retornamos el stream REAL
-  // Esto es lo que hace que las letras vayan apareciendo en el frontend
   return result.toUIMessageStreamResponse();
 }

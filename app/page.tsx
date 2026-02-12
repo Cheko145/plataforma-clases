@@ -1,13 +1,19 @@
 import Link from 'next/link';
 import { misClases, getYouTubeID } from '@/data/courses';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const session = await auth();
+   if (!session || !session.user) {
+      redirect("/login");
+    }
   return (
     <main className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-6xl mx-auto">
         <header className="mb-10 text-center">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Mis Cursos Disponibles</h1>
-          <p className="text-slate-600">Selecciona una clase para comenzar a aprender</p>
+          <p className="text-slate-600">Selecciona una clase para comenzar</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
