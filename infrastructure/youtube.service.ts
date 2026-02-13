@@ -1,26 +1,82 @@
-import { YoutubeTranscript } from 'youtube-transcript-plus';
-import type { FetchParams, TranscriptConfig } from 'youtube-transcript-plus/dist/types';
-
-const BROWSER_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const RE_XML_TRANSCRIPT = /<text start="([^"]*)" dur="([^"]*)">([^<]*)<\/text>/g;
 
 /**
- * Fetch personalizado que inyecta cookies de consentimiento y headers
- * para evitar que YouTube devuelva la página GDPR/consent desde IPs de data center.
+ * Llama directamente al Innertube player API sin pasar por la página de YouTube.
+ * Esto evita el bloqueo GDPR/consent que YouTube aplica a IPs de data centers.
  */
-async function ytFetch(params: FetchParams): Promise<Response> {
-  const { url, lang, userAgent, method = 'GET', body, headers = {} } = params;
-  return fetch(url, {
-    method,
-    body: method === 'POST' ? body : undefined,
-    headers: {
-      'User-Agent': userAgent || BROWSER_UA,
-      ...(lang && { 'Accept-Language': lang }),
-      // Cookie de consentimiento para evitar la pantalla GDPR
-      Cookie: 'CONSENT=PENDING+987; SOCS=CAESEwgDEgk3NDE3MTI5MTcaAmVuIAEaBgiA_LyuBg',
-      ...headers,
-    },
-  });
+async function fetchTranscriptDirect(
+  videoId: string,
+  lang = "es"
+): Promise<string> {
+  // 1) Llamar al Innertube player endpoint como cliente WEB
+  const playerRes = await fetch(
+    "https://www.youtube.com/youtubei/v1/player?prettyPrint=false",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: "WEB",
+            clientVersion: "2.20250101.00.00",
+          },
+        },
+        videoId,
+      }),
+    }
+  );
+
+  if (!playerRes.ok) {
+    throw new Error(`Innertube player responded ${playerRes.status}`);
+  }
+
+  const playerJson = await playerRes.json();
+  const tracklist =
+    playerJson?.captions?.playerCaptionsTracklistRenderer;
+  const tracks: { languageCode: string; baseUrl?: string; url?: string }[] =
+    tracklist?.captionTracks ?? [];
+
+  if (!tracks.length) {
+    throw new Error("No caption tracks found");
+  }
+
+  // 2) Elegir el track del idioma solicitado o el primero disponible
+  const track =
+    tracks.find((t) => t.languageCode === lang) ?? tracks[0];
+
+  const transcriptURL = track.baseUrl ?? track.url;
+  if (!transcriptURL) {
+    throw new Error("No transcript URL in caption track");
+  }
+
+  // 3) Descargar el XML de la transcripción
+  const transcriptRes = await fetch(transcriptURL);
+  if (!transcriptRes.ok) {
+    throw new Error(`Transcript fetch responded ${transcriptRes.status}`);
+  }
+
+  const xml = await transcriptRes.text();
+
+  // 4) Parsear el XML a texto plano
+  const segments: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = RE_XML_TRANSCRIPT.exec(xml)) !== null) {
+    segments.push(match[3]);
+  }
+
+  if (!segments.length) {
+    throw new Error("Transcript XML had no text segments");
+  }
+
+  return segments
+    .join(" ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export class YouTubeService {
@@ -29,32 +85,17 @@ export class YouTubeService {
    * @param videoId El ID del video o la URL completa
    */
   static async getTranscript(videoId: string): Promise<string> {
+    // Extraer el ID si viene una URL completa
+    const idMatch = videoId.match(
+      /(?:v=|\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    );
+    const id = idMatch ? idMatch[1] : videoId;
+
     try {
-      console.log(`fetching transcript for: ${videoId}`);
-
-      const config: TranscriptConfig = {
-        lang: 'es',
-        userAgent: BROWSER_UA,
-        videoFetch: ytFetch,
-        playerFetch: ytFetch,
-        transcriptFetch: ytFetch,
-      };
-
-      const transcriptConfig = await YoutubeTranscript.fetchTranscript(videoId, config);
-
-      // Unimos todos los fragmentos de texto
-      const fullText = transcriptConfig
-        .map((entry) => entry.text)
-        .join(' ')
-        .replace(/&amp;#39;/g, "'") // Limpieza básica de caracteres HTML
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      return fullText;
-
+      console.log(`fetching transcript for: ${id}`);
+      return await fetchTranscriptDirect(id);
     } catch (error) {
-      console.error("❌ Error al obtener transcripción simple:", error);
-      // Retornamos vacío si no hay subtítulos disponibles
+      console.error("❌ Error al obtener transcripción:", error);
       return "";
     }
   }
