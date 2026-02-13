@@ -36,8 +36,8 @@ export const misClases = [
     },
     title: "Clase 2: Estructuras de Control",
     description: "Aprende sobre if, else y bucles for/while.",
-    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg"
+    youtubeUrl: "https://www.youtube.com/watch?v=6vcdxuNyKxc", 
+    thumbnail: "hhttps://i.ytimg.com/an_webp/6vcdxuNyKxc/mqdefault_6s.webp?du=3000&sqp=CPPGuMwG&rs=AOn4CLAxQX9exg8KpdIGDSwQE2cQcUM6GQ"
   },
   
   // ... agrega todos los que quieras

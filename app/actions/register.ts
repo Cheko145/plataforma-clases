@@ -1,52 +1,35 @@
 // app/actions/register.ts
 "use server";
 
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../generated/prisma/client";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
-
-
-const connectionString = `${process.env.DATABASE_URL}`
-
-const adapter = new PrismaPg({ connectionString })
-const prisma = new PrismaClient({ adapter })
-
-
-const registerSchema = z.object({
-  name: z.string().min(1, "El nombre es obligatorio"),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-});
+import { getUserByEmail, createUser } from "@/lib/users";
+import { sendWelcomeEmail } from "@/lib/email";
+import { registerSchema } from "@/lib/validations";
 
 export async function registerUser(formData: FormData) {
-  // 1. Validar datos
-  const data = Object.fromEntries(formData);
-  const parsed = registerSchema.safeParse(data);
+  const parsed = registerSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return { error: "Datos inválidos" };
+    // Devolvemos el primer error descriptivo para que el usuario sepa qué corregir
+    return { error: parsed.error.issues[0].message };
   }
 
   const { name, email, password } = parsed.data;
 
-  // 2. Verificar si ya existe
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const existingUser = await getUserByEmail(email);
   if (existingUser) {
     return { error: "El correo ya está registrado" };
   }
 
-  // 3. Hashear contraseña
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, 12);
+  await createUser({ name, email, password: hashedPassword });
 
-  // 4. Crear usuario
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-    },
-  });
+  // El email de bienvenida no bloquea el registro si el servidor SMTP falla
+  try {
+    await sendWelcomeEmail(email, name);
+  } catch (err) {
+    console.error("[register] Error enviando email de bienvenida:", err);
+  }
 
   return { success: true };
 }
