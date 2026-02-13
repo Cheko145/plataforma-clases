@@ -19,7 +19,11 @@ export class YouTubeService {
           httpOptions: {
             agent: agent,
             timeout: 10000 // 10 segundos para no agotar el tiempo de Vercel
-          }
+          },
+          headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'es-ES,es;q=0.9',
+      }
         }
       });
       // Unimos todos los fragmentos de texto
