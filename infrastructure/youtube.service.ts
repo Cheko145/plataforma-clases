@@ -1,4 +1,5 @@
 import { YoutubeTranscript } from 'youtube-transcript-plus';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export class YouTubeService {
   /**
@@ -8,12 +9,19 @@ export class YouTubeService {
   static async getTranscript(videoId: string): Promise<string> {
     try {
       console.log(`fetching transcript for: ${videoId}`);
-      
+      const proxyUrl = process.env.PROXY_URL;
       // La librería acepta tanto el ID como la URL completa
+      const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
       const transcriptConfig = await YoutubeTranscript.fetchTranscript(videoId, {
-        lang: 'es', // Opcional: intentar forzar español
+        lang: 'es', 
+        // @ts-ignore - Forzamos la configuración del agente en el cliente HTTP interno
+        config: {
+          httpOptions: {
+            agent: agent,
+            timeout: 10000 // 10 segundos para no agotar el tiempo de Vercel
+          }
+        }
       });
-
       // Unimos todos los fragmentos de texto
       const fullText = transcriptConfig
         .map((entry) => entry.text)
