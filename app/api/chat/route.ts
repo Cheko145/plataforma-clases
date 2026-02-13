@@ -1,11 +1,11 @@
 // app/api/chat/route.ts
 import { google } from '@ai-sdk/google';
 import { convertToModelMessages, streamText } from 'ai';
-import type { ModelMessage } from '@ai-sdk/provider-utils';
+import { YouTubeService } from '@/infrastructure/youtube.service';
 import { saveStudentAnswer } from '@/lib/answers';
 import { auth } from '@/auth';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   // Autenticación: el userId siempre viene de la sesión del servidor, nunca del cliente
@@ -21,7 +21,12 @@ export async function POST(req: Request) {
     return new Response('Video ID is required', { status: 400 });
   }
 
-  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  let transcript = '';
+  try {
+    transcript = await YouTubeService.getTranscript(videoId);
+  } catch {
+    transcript = "No se pudo obtener la transcripción del video.";
+  }
 
   // System prompt base
   let systemPrompt = `
@@ -39,9 +44,10 @@ export async function POST(req: Request) {
 
     --- FIN INSTRUCCIÓN ---
 
-    Para el resto de mensajes normales, responde dudas basándote en el contenido del video de YouTube proporcionado.
+    Para el resto de mensajes normales, responde dudas basándote en la transcripción:
+    ${transcript}
     REGLAS ESTRICTAS:
-    1. Responde preguntas SOLO basándose en el contenido del video proporcionado.
+    1. Responde preguntas SOLO basándose en la transcripción proporcionada arriba.
     2. Si la respuesta no está en el video, di: "Lo siento, ese tema no se tocó en este video".
     3. Sé conciso y didáctico.
     4. Responde en el mismo idioma en que se pregunta.
@@ -54,7 +60,8 @@ export async function POST(req: Request) {
 
     PREGUNTA: "${pendingQuestion}"
 
-    Usa el contenido del video de YouTube proporcionado para verificar la respuesta correcta.
+    Transcripción del video (para verificar la respuesta correcta):
+    ${transcript}
 
     INSTRUCCIONES:
     1. Evalúa si la respuesta del alumno es correcta según el video.
@@ -65,34 +72,10 @@ export async function POST(req: Request) {
     `;
   }
 
-  // Pasamos el video de YouTube directamente a Gemini (sin scraping de transcripción)
-  const videoContext: ModelMessage[] = [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'file',
-          data: new URL(videoUrl),
-          mediaType: 'video/mp4',
-        },
-        {
-          type: 'text',
-          text: 'Este es el video del curso. Úsalo como referencia para responder todas las preguntas.',
-        },
-      ],
-    },
-    {
-      role: 'assistant',
-      content: [{ type: 'text', text: 'Entendido, he analizado el video del curso. ¿En qué puedo ayudarte?' }],
-    },
-  ];
-
-  const modelMessages = await convertToModelMessages(messages);
-
   const result = streamText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-3-flash-preview'),
     system: systemPrompt,
-    messages: [...videoContext, ...modelMessages],
+    messages: await convertToModelMessages(messages),
     onFinish: async ({ text }) => {
       if (isStudentAnswer && pendingQuestion && courseId) {
         const isCorrect = text.includes('[EVAL:SI]') ? true : text.includes('[EVAL:NO]') ? false : null;
