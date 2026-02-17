@@ -90,7 +90,7 @@ export async function POST(req: Request) {
   const modelMessages = await convertToModelMessages(messages);
 
   const result = streamText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-3-flash-preview'),
     system: systemPrompt,
     messages: [...videoContext, ...modelMessages],
     onFinish: async ({ text }) => {
