@@ -15,30 +15,18 @@ export interface courses {
 export const misClases = [
   {
     id: "video_1", // ID único interno (opcional)
-    duration:"1:14",
-    title: "Clase 1: Propiedad Intelectual",
+    duration:"3:29",
+    title: "Unidad 2: Identificacion de oportunidades de negocio y desarrollo de productos",
     description: "Propiedad Intelectual",
     questions:{
-     q1: "¿Qué es una variable en programación?",
-     q2:"¿Para qué se utilizan las estructuras de control?",
-     q3:"Menciona un ejemplo de estructura de control y explica su función." 
+     q1: "¿Cuáles son los tres elementos esenciales que permiten distinguir una oportunidad de negocio real de una simple idea?",
+     q2:"¿En qué se diferencian las oportunidades de naturaleza 'schumpeteriana' de las 'kirznerianas' en cuanto al manejo de la información? ",
+     q3:"Según la teoría de los 'trabajos por hacer' (Jobs to be Done) de Clayton Christensen, ¿cuál es el motivo real por el cual un cliente adquiere un producto o servicio? ", 
+     q4:"¿Cuál es la ventaja principal de aplicar el 'Lienzo Lean' (Lean Canvas) en emprendimientos nuevos en comparación con el modelo Canvas tradicional? "
     },
-    youtubeUrl: "https://www.youtube.com/watch?v=FOKl4tfXlsE", // Pegas tu link aquí
-    thumbnail: "https://i.ytimg.com/vi/FOKl4tfXlsE/hqdefault.jpg?sqp=-oaymwFBCNACELwBSFryq4qpAzMIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB8AEB-AH-CYAC0AWKAgwIABABGGUgUihGMA8=&rs=AOn4CLCsChl7uujQyeOU-v7AC5MXiTy1Ag" // Truco: así obtienes la miniatura auto
+    youtubeUrl: "https://www.youtube.com/watch?v=1iWXyKuMHXI", // Pegas tu link aquí
+    thumbnail: "hhttps://i.ytimg.com/an_webp/Nnv0W23BHJQ/mqdefault_6s.webp?du=3000&sqp=CLyG08wG&rs=AOn4CLCWj3d5xYWKhA0lsB1fpfu-QYGuZg" // Truco: así obtienes la miniatura auto
   },  
-  {
-    id: "video_2",
-    duration:"15:30",
-    questions:{
-     q1: "¿Qué es una variable en programación?",
-      q2:"¿Para qué se utilizan las estructuras de control?",
-     q3:"Menciona un ejemplo de estructura de control y explica su función." 
-    },
-    title: "Clase 2: Estructuras de Control",
-    description: "Aprende sobre if, else y bucles for/while.",
-    youtubeUrl: "https://www.youtube.com/watch?v=6vcdxuNyKxc", 
-    thumbnail: "hhttps://i.ytimg.com/an_webp/6vcdxuNyKxc/mqdefault_6s.webp?du=3000&sqp=CPPGuMwG&rs=AOn4CLAxQX9exg8KpdIGDSwQE2cQcUM6GQ"
-  },
   
   // ... agrega todos los que quieras
 ];

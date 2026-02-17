@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 // Calcula el intervalo entre preguntas automáticas (1/3 de la duración del video)
 function calculateInterval(durationStr: string): number {
   const [minutes, seconds] = durationStr.split(':').map(Number);
-  return ((minutes * 60) + seconds) * 1000 / 3;
+  return ((minutes * 60) + seconds) * 1000 / 4;
 }
 
 interface ChatInterfaceProps {
