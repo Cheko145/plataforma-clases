@@ -56,3 +56,56 @@ CREATE TABLE IF NOT EXISTS public.video_questions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_video_questions_video_id ON public.video_questions(video_id);
+
+-- 5. CURSOS (migrado desde data/courses.ts — gestión dinámica desde el admin)
+CREATE TABLE IF NOT EXISTS public.courses (
+  id          text        NOT NULL,
+  title       text        NOT NULL,
+  description text,
+  thumbnail   text,
+  youtube_url text        NOT NULL,
+  duration    text,
+  created_at  timestamptz DEFAULT now(),
+  CONSTRAINT courses_pkey PRIMARY KEY (id)
+);
+
+-- 6. GRUPOS DE ALUMNOS
+CREATE TABLE IF NOT EXISTS public.groups (
+  id          text        NOT NULL DEFAULT (gen_random_uuid())::text,
+  name        text        NOT NULL,
+  description text,
+  created_at  timestamptz DEFAULT now(),
+  CONSTRAINT groups_pkey PRIMARY KEY (id)
+);
+
+-- 7. ALUMNOS ↔ GRUPOS (muchos a muchos)
+CREATE TABLE IF NOT EXISTS public.group_members (
+  group_id text        NOT NULL,
+  user_id  text        NOT NULL,
+  added_at timestamptz DEFAULT now(),
+  CONSTRAINT group_members_pkey   PRIMARY KEY (group_id, user_id),
+  CONSTRAINT gm_group_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id)  ON DELETE CASCADE,
+  CONSTRAINT gm_user_fkey  FOREIGN KEY (user_id)  REFERENCES public.users(id)   ON DELETE CASCADE
+);
+
+-- 8. CURSOS ↔ GRUPOS (control de acceso)
+CREATE TABLE IF NOT EXISTS public.group_courses (
+  group_id    text        NOT NULL,
+  course_id   text        NOT NULL,
+  assigned_at timestamptz DEFAULT now(),
+  CONSTRAINT group_courses_pkey    PRIMARY KEY (group_id, course_id),
+  CONSTRAINT gc_group_fkey  FOREIGN KEY (group_id)  REFERENCES public.groups(id)  ON DELETE CASCADE,
+  CONSTRAINT gc_course_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE
+);
+
+-- SEED: migrar curso existente de data/courses.ts
+INSERT INTO public.courses (id, title, description, thumbnail, youtube_url, duration)
+VALUES (
+  'video_1',
+  'Unidad 2: Identificacion de oportunidades de negocio y desarrollo de productos',
+  'Propiedad Intelectual',
+  'https://i.ytimg.com/vi/1iWXyKuMHXI/hqdefault.jpg',
+  'https://www.youtube.com/watch?v=1iWXyKuMHXI',
+  '3:29'
+)
+ON CONFLICT (id) DO NOTHING;

@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { saveVideoQuestions } from "@/lib/questions";
-import { misClases } from "@/data/courses";
+import { getCourseById } from "@/lib/courses-db";
 import type { ModelMessage } from "@ai-sdk/provider-utils";
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return new Response("videoId requerido", { status: 400 });
   }
 
-  const course = misClases.find(c => c.id === videoId);
+  const course = await getCourseById(videoId);
   if (!course) {
     return new Response("Curso no encontrado", { status: 404 });
   }
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       content: [
         {
           type: "file",
-          data: new URL(course.youtubeUrl),
+          data: new URL(course.youtube_url),
           mediaType: "video/mp4",
         },
         {

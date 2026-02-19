@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { misClases } from "@/data/courses";
+
+interface Course {
+  id: string;
+  title: string;
+  duration: string | null;
+}
 
 interface CourseState {
   questions: string[];
@@ -11,11 +16,9 @@ interface CourseState {
 }
 
 export default function QuestionManager() {
-  const [states, setStates] = useState<Record<string, CourseState>>(() =>
-    Object.fromEntries(
-      misClases.map(c => [c.id, { questions: [], loading: true, generating: false, error: null }])
-    )
-  );
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [states, setStates] = useState<Record<string, CourseState>>({});
 
   const loadQuestions = useCallback(async (videoId: string) => {
     try {
@@ -34,7 +37,19 @@ export default function QuestionManager() {
   }, []);
 
   useEffect(() => {
-    misClases.forEach(c => loadQuestions(c.id));
+    fetch("/api/courses")
+      .then(r => r.json())
+      .then((data: Course[]) => {
+        setCourses(data);
+        setCoursesLoading(false);
+        const initial: Record<string, CourseState> = {};
+        data.forEach(c => {
+          initial[c.id] = { questions: [], loading: true, generating: false, error: null };
+        });
+        setStates(initial);
+        data.forEach(c => loadQuestions(c.id));
+      })
+      .catch(() => setCoursesLoading(false));
   }, [loadQuestions]);
 
   async function handleGenerate(videoId: string) {
@@ -69,18 +84,36 @@ export default function QuestionManager() {
     }
   }
 
+  if (coursesLoading) {
+    return (
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-slate-700 mb-3">Preguntas de evaluación por video</h2>
+        <p className="text-xs text-slate-400">Cargando cursos…</p>
+      </div>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-slate-700 mb-3">Preguntas de evaluación por video</h2>
+        <p className="text-xs text-slate-400 italic">No hay cursos creados aún. Agrega uno en la sección de Cursos.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-8">
       <h2 className="text-sm font-semibold text-slate-700 mb-3">Preguntas de evaluación por video</h2>
       <div className="space-y-3">
-        {misClases.map(course => {
-          const state = states[course.id];
+        {courses.map(course => {
+          const state = states[course.id] ?? { questions: [], loading: false, generating: false, error: null };
           return (
             <div key={course.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate">{course.title}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{course.id} · {course.duration}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{course.id} · {course.duration ?? "—"}</p>
                 </div>
 
                 <button
@@ -123,7 +156,7 @@ export default function QuestionManager() {
                 </ol>
               ) : (
                 <p className="mt-3 text-xs text-slate-400 italic">
-                  Sin preguntas — haz clic en "Generar con IA" para crearlas.
+                  Sin preguntas — haz clic en &quot;Generar con IA&quot; para crearlas.
                 </p>
               )}
             </div>

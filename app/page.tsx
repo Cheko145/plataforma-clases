@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { misClases, getYouTubeID } from '@/data/courses';
+import { getCoursesByUserId, getYouTubeID } from '@/lib/courses-db';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
@@ -13,6 +13,10 @@ export default async function Dashboard() {
   const userName = session.user.name ?? session.user.email ?? "Estudiante";
   const initials = userName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
   const isAdmin  = session.user.role === "admin";
+
+  const misClases = isAdmin
+    ? [] // El admin no necesita ver cursos en el dashboard
+    : await getCoursesByUserId(session.user.id!);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -69,53 +73,67 @@ export default async function Dashboard() {
           <p className="text-slate-500 mt-1">Estos son tus cursos disponibles. ¡A aprender!</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {misClases.map((clase) => {
-            const videoId = getYouTubeID(clase.youtubeUrl);
-            return (
-              <Link
-                key={clase.id}
-                href={`/courses/${clase.id}/${videoId}`}
-                className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col"
-              >
-                {/* Miniatura */}
-                <div className="aspect-video bg-slate-100 relative overflow-hidden">
-                  <img
-                    src={clase.thumbnail}
-                    alt={clase.title}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/25">
-                    <div className="bg-white/95 text-indigo-600 rounded-full px-4 py-2 text-sm font-semibold shadow-sm flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                      Ver clase
+        {misClases.length === 0 && !isAdmin ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+              <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h2 className="text-slate-700 font-semibold text-lg mb-1">Aún no tienes cursos asignados</h2>
+            <p className="text-slate-400 text-sm max-w-sm">
+              Contacta a tu administrador para que te asigne a un grupo y puedas acceder a las clases.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {misClases.map((clase) => {
+              const videoId = getYouTubeID(clase.youtube_url);
+              return (
+                <Link
+                  key={clase.id}
+                  href={`/courses/${clase.id}/${videoId}`}
+                  className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col"
+                >
+                  {/* Miniatura */}
+                  <div className="aspect-video bg-slate-100 relative overflow-hidden">
+                    <img
+                      src={clase.thumbnail ?? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+                      alt={clase.title}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/25">
+                      <div className="bg-white/95 text-indigo-600 rounded-full px-4 py-2 text-sm font-semibold shadow-sm flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                        Ver clase
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Info */}
-                <div className="p-5 flex flex-col flex-1">
-                  <h2 className="font-semibold text-slate-800 mb-1.5 group-hover:text-indigo-600 transition-colors leading-snug">
-                    {clase.title}
-                  </h2>
-                  <p className="text-slate-400 text-sm flex-1 leading-relaxed">
-                    {clase.description}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-full">
-                      {clase.duration}
-                    </span>
-                    <span className="text-indigo-600 text-sm font-medium group-hover:translate-x-0.5 transition-transform">
-                      Ir al aula →
-                    </span>
+                  {/* Info */}
+                  <div className="p-5 flex flex-col flex-1">
+                    <h2 className="font-semibold text-slate-800 mb-1.5 group-hover:text-indigo-600 transition-colors leading-snug">
+                      {clase.title}
+                    </h2>
+                    <p className="text-slate-400 text-sm flex-1 leading-relaxed">
+                      {clase.description}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xs text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-full">
+                        {clase.duration ?? "—"}
+                      </span>
+                      <span className="text-indigo-600 text-sm font-medium group-hover:translate-x-0.5 transition-transform">
+                        Ir al aula →
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </main>
     </div>
   );

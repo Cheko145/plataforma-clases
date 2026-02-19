@@ -1,7 +1,9 @@
 import VideoPlayer from '@/components/VideoPlayer';
 import ChatInterface from '@/components/ChatInterface';
-import { auth } from "@/auth"; // <--- Importamos auth
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { getCoursesByUserId } from "@/lib/courses-db";
+
 interface PageProps {
   params: Promise<{ id: string; videoId: string }>;
 }
@@ -12,6 +14,13 @@ export default async function ClaseDinamica({ params }: PageProps) {
     redirect("/login");
   }
   const { id, videoId } = await params;
+
+  // Los admins tienen acceso total; los alumnos solo a sus cursos de grupo
+  if (session.user.role !== "admin") {
+    const accessibleCourses = await getCoursesByUserId(session.user.id!);
+    const hasAccess = accessibleCourses.some((c) => c.id === id);
+    if (!hasAccess) redirect("/");
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

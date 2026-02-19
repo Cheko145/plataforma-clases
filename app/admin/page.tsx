@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getAllAnswers, getEngagementByStudent } from "@/lib/answers";
 import Link from "next/link";
 import QuestionManager from "@/components/QuestionManager";
+import CourseManager from "@/components/CourseManager";
+import GroupManager from "@/components/GroupManager";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -47,6 +49,8 @@ export default async function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
 
+        <CourseManager />
+        <GroupManager />
         <QuestionManager />
 
         {/* Estadísticas rápidas */}
