@@ -1,4 +1,3 @@
-// app/register/page.tsx
 "use client";
 
 import { registerUser } from "@/app/actions/register";
@@ -6,8 +5,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const requirements = [
+  { label: "Mínimo 8 caracteres",                  test: (p: string) => p.length >= 8 },
+  { label: "Al menos una letra mayúscula",          test: (p: string) => /[A-Z]/.test(p) },
+  { label: "Al menos un número",                    test: (p: string) => /[0-9]/.test(p) },
+  { label: "Al menos un carácter especial (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
+
 export default function RegisterPage() {
   const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [showReqs, setShowReqs] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
@@ -21,6 +29,8 @@ export default function RegisterPage() {
       router.push("/login?registered=true");
     }
   }
+
+  const allMet = requirements.every(r => r.test(password));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center p-4">
@@ -84,16 +94,53 @@ export default function RegisterPage() {
                 name="password"
                 type="password"
                 required
-                placeholder="Mínimo 6 caracteres"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onFocus={() => setShowReqs(true)}
+                placeholder="Crea una contraseña segura"
                 className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm
                            placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               />
+
+              {/* Requisitos de contraseña — aparecen al enfocar el campo */}
+              {showReqs && (
+                <ul className="mt-2.5 space-y-1.5 px-1">
+                  {requirements.map(req => {
+                    const met = req.test(password);
+                    const typed = password.length > 0;
+                    return (
+                      <li key={req.label} className="flex items-center gap-2">
+                        <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-colors ${
+                          met ? 'bg-emerald-500' : typed ? 'bg-red-400' : 'bg-slate-200'
+                        }`}>
+                          {met ? (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className={`text-xs transition-colors ${
+                          met ? 'text-emerald-600' : typed ? 'text-red-500' : 'text-slate-400'
+                        }`}>
+                          {req.label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
 
             <div className="pt-1">
               <button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm"
+                disabled={password.length > 0 && !allMet}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm
+                           disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Crear cuenta
               </button>

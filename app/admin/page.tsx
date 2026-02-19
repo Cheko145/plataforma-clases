@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getAllAnswers, getEngagementByStudent } from "@/lib/answers";
 import Link from "next/link";
+import QuestionManager from "@/components/QuestionManager";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -45,6 +46,8 @@ export default async function AdminPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+
+        <QuestionManager />
 
         {/* Estadísticas rápidas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

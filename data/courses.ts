@@ -25,7 +25,7 @@ export const misClases = [
      q4:"¿Cuál es la ventaja principal de aplicar el 'Lienzo Lean' (Lean Canvas) en emprendimientos nuevos en comparación con el modelo Canvas tradicional? "
     },
     youtubeUrl: "https://www.youtube.com/watch?v=1iWXyKuMHXI", // Pegas tu link aquí
-    thumbnail: "hhttps://i.ytimg.com/an_webp/Nnv0W23BHJQ/mqdefault_6s.webp?du=3000&sqp=CLyG08wG&rs=AOn4CLCWj3d5xYWKhA0lsB1fpfu-QYGuZg" // Truco: así obtienes la miniatura auto
+    thumbnail: "https://i.ytimg.com/an_webp/Nnv0W23BHJQ/mqdefault_6s.webp?du=3000&sqp=CLyG08wG&rs=AOn4CLCWj3d5xYWKhA0lsB1fpfu-QYGuZg" // Truco: así obtienes la miniatura auto
   },  
   
   // ... agrega todos los que quieras

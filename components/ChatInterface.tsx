@@ -4,32 +4,34 @@ import { useChat } from "@ai-sdk/react";
 import { misClases } from "@/data/courses";
 import { useState, useEffect, useRef } from "react";
 
-// Calcula el intervalo entre preguntas automáticas (1/3 de la duración del video)
-function calculateInterval(durationStr: string): number {
+// Calcula el intervalo entre preguntas en función de cuántas hay
+function calculateInterval(durationStr: string, questionCount: number): number {
   const [minutes, seconds] = durationStr.split(':').map(Number);
-  return ((minutes * 60) + seconds) * 1000 / 4;
+  return ((minutes * 60) + seconds) * 1000 / questionCount;
 }
 
 interface ChatInterfaceProps {
-  videoId: string;  // ID del curso (para buscar preguntas)
+  videoId: string;  // ID interno del curso
   userName: string;
   id: string;       // ID del video de YouTube
-  courseId: string; // ID del curso (se envía al guardar respuestas)
+  courseId: string;
 }
 
 export default function ChatInterface({ videoId, userName, id, courseId }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [questionsList, setQuestionsList] = useState<string[]>([]);
+  const [questionsReady, setQuestionsReady] = useState(false);
 
+  // Metadatos del curso (duración) siguen viniendo de courses.ts
   const currentCourse = misClases.find((c: { id: string }) => c.id === videoId);
-  const questionsList = currentCourse ? Object.values(currentCourse.questions) : [];
+
   const questionIndexRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { messages, status, sendMessage } = useChat();
   const isLoading = status === 'submitted' || status === 'streaming';
 
-  // Refs para acceder a valores actualizados dentro de callbacks de timers
   const isLoadingRef = useRef(isLoading);
   const sendMessageRef = useRef(sendMessage);
   const pendingQuestionRef = useRef(pendingQuestion);
@@ -40,11 +42,26 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
     pendingQuestionRef.current = pendingQuestion;
   }, [isLoading, sendMessage, pendingQuestion]);
 
-  // Dispara preguntas de evaluación automáticas según el intervalo calculado
+  // Carga las preguntas desde la DB (1 fetch por video, compartido entre 70k alumnos)
   useEffect(() => {
-    if (!currentCourse || questionsList.length === 0) return;
+    setQuestionsReady(false);
+    setQuestionsList([]);
+    questionIndexRef.current = 0;
 
-    const intervalTime = calculateInterval(currentCourse.duration);
+    fetch(`/api/questions/${videoId}`)
+      .then(r => r.json())
+      .then((data: string[]) => {
+        setQuestionsList(Array.isArray(data) ? data : []);
+        setQuestionsReady(true);
+      })
+      .catch(() => setQuestionsReady(true)); // Sin preguntas → el chat sigue funcionando
+  }, [videoId]);
+
+  // Dispara preguntas automáticas según el intervalo calculado
+  useEffect(() => {
+    if (!questionsReady || questionsList.length === 0 || !currentCourse) return;
+
+    const intervalTime = calculateInterval(currentCourse.duration, questionsList.length);
 
     timerRef.current = setInterval(() => {
       if (questionIndexRef.current >= questionsList.length) {
@@ -67,7 +84,7 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [videoId, userName, currentCourse, questionsList, id]);
+  }, [videoId, userName, questionsList, questionsReady, currentCourse, id]);
 
   const onSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -76,7 +93,6 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
     const currentPending = pendingQuestionRef.current;
 
     if (currentPending) {
-      // Es una respuesta de evaluación: el userId lo obtiene el servidor desde la sesión
       setPendingQuestion(null);
       await sendMessage(
         { text: input },
