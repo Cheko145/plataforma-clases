@@ -48,7 +48,7 @@ Responde ÚNICAMENTE con un objeto JSON válido, sin markdown ni texto adicional
   ];
 
   const { text } = await generateText({
-    model: google("gemini-2.0-flash"),
+    model: google("gemini-3-flash-preview"),
     messages: videoContext,
   });
 
