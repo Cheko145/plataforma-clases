@@ -1,33 +1,35 @@
 'use client';
 
 import { useChat } from "@ai-sdk/react";
-import { misClases } from "@/data/courses";
 import { useState, useEffect, useRef } from "react";
 
-// Calcula el intervalo entre preguntas en función de cuántas hay
-function calculateInterval(durationStr: string, questionCount: number): number {
-  const [minutes, seconds] = durationStr.split(':').map(Number);
-  return ((minutes * 60) + seconds) * 1000 / questionCount;
-}
-
 interface ChatInterfaceProps {
-  videoId: string;  // ID interno del curso
+  videoId: string;
   userName: string;
-  id: string;       // ID del video de YouTube
+  id: string;
   courseId: string;
+  currentTime: number;
+  videoDuration: number;
+  onQuestionTriggered: () => void;
+  onAnswerSubmitted: () => void;
 }
 
-export default function ChatInterface({ videoId, userName, id, courseId }: ChatInterfaceProps) {
+export default function ChatInterface({
+  videoId,
+  userName,
+  id,
+  courseId,
+  currentTime,
+  videoDuration,
+  onQuestionTriggered,
+  onAnswerSubmitted,
+}: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [questionsList, setQuestionsList] = useState<string[]>([]);
   const [questionsReady, setQuestionsReady] = useState(false);
 
-  // Metadatos del curso (duración) siguen viniendo de courses.ts
-  const currentCourse = misClases.find((c: { id: string }) => c.id === videoId);
-
   const questionIndexRef = useRef(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { messages, status, sendMessage } = useChat();
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -42,7 +44,7 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
     pendingQuestionRef.current = pendingQuestion;
   }, [isLoading, sendMessage, pendingQuestion]);
 
-  // Carga las preguntas desde la DB (1 fetch por video, compartido entre 70k alumnos)
+  // Carga las preguntas desde la DB
   useEffect(() => {
     setQuestionsReady(false);
     setQuestionsList([]);
@@ -54,37 +56,33 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
         setQuestionsList(Array.isArray(data) ? data : []);
         setQuestionsReady(true);
       })
-      .catch(() => setQuestionsReady(true)); // Sin preguntas → el chat sigue funcionando
+      .catch(() => setQuestionsReady(true));
   }, [videoId]);
 
-  // Dispara preguntas automáticas según el intervalo calculado
+  // Dispara preguntas según el progreso real del video
   useEffect(() => {
-    if (!questionsReady || questionsList.length === 0 || !currentCourse) return;
+    if (!questionsReady || questionsList.length === 0 || videoDuration === 0) return;
 
-    const intervalTime = calculateInterval(currentCourse.duration, questionsList.length);
+    const nextIndex = questionIndexRef.current;
+    if (nextIndex >= questionsList.length) return;
+    if (isLoadingRef.current) return;
 
-    timerRef.current = setInterval(() => {
-      if (questionIndexRef.current >= questionsList.length) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        return;
-      }
-      if (isLoadingRef.current) return;
+    // Distribuye las preguntas uniformemente a lo largo del video
+    const triggerTime = ((nextIndex + 1) * videoDuration) / (questionsList.length + 1);
 
-      const currentQuestion = questionsList[questionIndexRef.current];
-      setPendingQuestion(currentQuestion);
+    if (currentTime >= triggerTime) {
+      const question = questionsList[nextIndex];
+      questionIndexRef.current += 1;
+
+      setPendingQuestion(question);
+      onQuestionTriggered();
 
       sendMessageRef.current(
-        { text: `TRIGGER_AUTO_QUESTION:\nUser: "${userName}"\nQuestion: "${currentQuestion}"` },
+        { text: `TRIGGER_AUTO_QUESTION:\nUser: "${userName}"\nQuestion: "${question}"` },
         { body: { videoId: id } }
       );
-
-      questionIndexRef.current += 1;
-    }, intervalTime);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [videoId, userName, questionsList, questionsReady, currentCourse, id]);
+    }
+  }, [currentTime, questionsReady, questionsList, videoDuration, userName, id, onQuestionTriggered]);
 
   const onSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -94,6 +92,7 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
 
     if (currentPending) {
       setPendingQuestion(null);
+      onAnswerSubmitted();
       await sendMessage(
         { text: input },
         {
@@ -180,7 +179,8 @@ export default function ChatInterface({ videoId, userName, id, courseId }: ChatI
         {pendingQuestion && (
           <div className="flex items-center gap-1.5 text-amber-600 text-xs mb-2 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg">
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Respondiendo a una pregunta de evaluación
           </div>
