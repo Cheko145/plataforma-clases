@@ -26,7 +26,7 @@ export default function ChatInterface({
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
-  const [questionsList, setQuestionsList] = useState<string[]>([]);
+  const [questionsList, setQuestionsList] = useState<{ question: string; trigger_time: number }[]>([]);
   const [questionsReady, setQuestionsReady] = useState(false);
 
   const questionIndexRef = useRef(0);
@@ -52,26 +52,27 @@ export default function ChatInterface({
 
     fetch(`/api/questions/${videoId}`)
       .then(r => r.json())
-      .then((data: string[]) => {
-        setQuestionsList(Array.isArray(data) ? data : []);
+      .then((data: { question: string; trigger_time: number }[]) => {
+        const sorted = Array.isArray(data)
+          ? [...data].sort((a, b) => a.trigger_time - b.trigger_time)
+          : [];
+        setQuestionsList(sorted);
         setQuestionsReady(true);
       })
       .catch(() => setQuestionsReady(true));
   }, [videoId]);
 
-  // Dispara preguntas según el progreso real del video
+  // Dispara preguntas según el trigger_time definido por la IA
   useEffect(() => {
-    if (!questionsReady || questionsList.length === 0 || videoDuration === 0) return;
+    if (!questionsReady || questionsList.length === 0) return;
 
     const nextIndex = questionIndexRef.current;
     if (nextIndex >= questionsList.length) return;
     if (isLoadingRef.current) return;
 
-    // Distribuye las preguntas uniformemente a lo largo del video
-    const triggerTime = ((nextIndex + 1) * videoDuration) / (questionsList.length + 1);
+    const { question, trigger_time } = questionsList[nextIndex];
 
-    if (currentTime >= triggerTime) {
-      const question = questionsList[nextIndex];
+    if (currentTime >= trigger_time) {
       questionIndexRef.current += 1;
 
       setPendingQuestion(question);
@@ -82,7 +83,7 @@ export default function ChatInterface({
         { body: { videoId: id } }
       );
     }
-  }, [currentTime, questionsReady, questionsList, videoDuration, userName, id, onQuestionTriggered]);
+  }, [currentTime, questionsReady, questionsList, userName, id, onQuestionTriggered]);
 
   const onSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();

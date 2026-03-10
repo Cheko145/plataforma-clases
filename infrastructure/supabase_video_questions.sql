@@ -47,13 +47,18 @@ CREATE TABLE IF NOT EXISTS public.student_answers (
 
 -- 4. PREGUNTAS DE EVALUACIÓN POR VIDEO (generadas por IA, compartidas entre alumnos)
 CREATE TABLE IF NOT EXISTS public.video_questions (
-  id          text        NOT NULL DEFAULT (gen_random_uuid())::text,
-  video_id    text        NOT NULL,
-  question    text        NOT NULL,
-  order_index integer     NOT NULL DEFAULT 0,
-  created_at  timestamptz NOT NULL DEFAULT now(),
+  id           text        NOT NULL DEFAULT (gen_random_uuid())::text,
+  video_id     text        NOT NULL,
+  question     text        NOT NULL,
+  order_index  integer     NOT NULL DEFAULT 0,
+  trigger_time integer     NOT NULL DEFAULT 0,  -- segundos desde el inicio del video
+  created_at   timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT video_questions_pkey PRIMARY KEY (id)
 );
+
+-- Migración: agregar trigger_time si la tabla ya existe sin esa columna
+ALTER TABLE public.video_questions
+  ADD COLUMN IF NOT EXISTS trigger_time integer NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_video_questions_video_id ON public.video_questions(video_id);
 

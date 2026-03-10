@@ -8,8 +8,13 @@ interface Course {
   duration: string | null;
 }
 
+interface QuestionItem {
+  question: string;
+  trigger_time: number; // segundos
+}
+
 interface CourseState {
-  questions: string[];
+  questions: QuestionItem[];
   loading: boolean;
   generating: boolean;
   error: string | null;
@@ -23,10 +28,10 @@ export default function QuestionManager() {
   const loadQuestions = useCallback(async (videoId: string) => {
     try {
       const res = await fetch(`/api/questions/${videoId}`);
-      const data: string[] = await res.json();
+      const data: QuestionItem[] = await res.json();
       setStates(prev => ({
         ...prev,
-        [videoId]: { ...prev[videoId], questions: data, loading: false },
+        [videoId]: { ...prev[videoId], questions: Array.isArray(data) ? data : [], loading: false },
       }));
     } catch {
       setStates(prev => ({
@@ -67,7 +72,7 @@ export default function QuestionManager() {
 
       if (!res.ok) throw new Error(await res.text());
 
-      const data: { questions: string[] } = await res.json();
+      const data: { questions: QuestionItem[] } = await res.json();
       setStates(prev => ({
         ...prev,
         [videoId]: { questions: data.questions, loading: false, generating: false, error: null },
@@ -150,9 +155,19 @@ export default function QuestionManager() {
                 <p className="mt-3 text-xs text-slate-400">Cargando…</p>
               ) : state.questions.length > 0 ? (
                 <ol className="mt-3 space-y-1.5 list-decimal list-inside">
-                  {state.questions.map((q, i) => (
-                    <li key={i} className="text-xs text-slate-600 leading-relaxed">{q}</li>
-                  ))}
+                  {state.questions.map((q, i) => {
+                    const mins = Math.floor(q.trigger_time / 60);
+                    const secs = q.trigger_time % 60;
+                    const timeLabel = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    return (
+                      <li key={i} className="text-xs text-slate-600 leading-relaxed flex items-start gap-2">
+                        <span className="flex-shrink-0 font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[10px]">
+                          {timeLabel}
+                        </span>
+                        <span>{q.question}</span>
+                      </li>
+                    );
+                  })}
                 </ol>
               ) : (
                 <p className="mt-3 text-xs text-slate-400 italic">

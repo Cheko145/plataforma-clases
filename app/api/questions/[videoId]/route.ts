@@ -12,5 +12,5 @@ export async function GET(
 
   const { videoId } = await params;
   const rows = await getQuestionsByVideoId(videoId);
-  return Response.json(rows.map(r => r.question));
+  return Response.json(rows.map(r => ({ question: r.question, trigger_time: r.trigger_time })));
 }
