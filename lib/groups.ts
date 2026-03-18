@@ -24,6 +24,8 @@ export interface GroupCourse {
   title: string;
   youtube_url: string;
   assigned_at: Date;
+  deadline: Date | null;
+  admin_message: string | null;
 }
 
 export interface StudentBasic {
@@ -118,7 +120,7 @@ export async function removeMember(groupId: string, userId: string): Promise<voi
 
 export async function getGroupCourses(groupId: string): Promise<GroupCourse[]> {
   const result = await pool.query<GroupCourse>(
-    `SELECT c.id AS course_id, c.title, c.youtube_url, gc.assigned_at
+    `SELECT c.id AS course_id, c.title, c.youtube_url, gc.assigned_at, gc.deadline, gc.admin_message
      FROM group_courses gc
      JOIN courses c ON gc.course_id = c.id
      WHERE gc.group_id = $1
@@ -130,14 +132,25 @@ export async function getGroupCourses(groupId: string): Promise<GroupCourse[]> {
 
 export async function addCourseToGroup(
   groupId: string,
-  courseId: string
+  courseId: string,
+  options?: { deadline?: string; adminMessage?: string }
 ): Promise<void> {
   await pool.query(
-    `INSERT INTO group_courses (group_id, course_id)
-     VALUES ($1, $2)
-     ON CONFLICT DO NOTHING`,
-    [groupId, courseId]
+    `INSERT INTO group_courses (group_id, course_id, deadline, admin_message)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (group_id, course_id) DO UPDATE
+       SET deadline      = EXCLUDED.deadline,
+           admin_message = EXCLUDED.admin_message`,
+    [groupId, courseId, options?.deadline ?? null, options?.adminMessage ?? null]
   );
+}
+
+export async function getGroupMemberIds(groupId: string): Promise<string[]> {
+  const result = await pool.query<{ user_id: string }>(
+    `SELECT user_id FROM group_members WHERE group_id = $1`,
+    [groupId]
+  );
+  return result.rows.map((r) => r.user_id);
 }
 
 export async function removeCourseFromGroup(
@@ -148,6 +161,30 @@ export async function removeCourseFromGroup(
     "DELETE FROM group_courses WHERE group_id = $1 AND course_id = $2",
     [groupId, courseId]
   );
+}
+
+export interface UpcomingDeadline {
+  user_id: string;
+  email: string;
+  name: string | null;
+  course_id: string;
+  course_title: string;
+  youtube_url: string;
+  deadline: Date;
+}
+
+export async function getUsersWithDeadlineTomorrow(): Promise<UpcomingDeadline[]> {
+  const result = await pool.query<UpcomingDeadline>(
+    `SELECT DISTINCT u.id AS user_id, u.email, u.name, c.id AS course_id, c.title AS course_title, c.youtube_url, gc.deadline
+     FROM group_courses gc
+     JOIN group_members gm ON gc.group_id = gm.group_id
+     JOIN users u ON gm.user_id = u.id
+     JOIN courses c ON gc.course_id = c.id
+     WHERE gc.deadline::date = (CURRENT_DATE + INTERVAL '1 day')::date
+       AND u.email IS NOT NULL
+     ORDER BY u.email ASC`
+  );
+  return result.rows;
 }
 
 export async function getAllStudents(): Promise<StudentBasic[]> {

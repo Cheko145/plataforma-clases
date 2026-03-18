@@ -79,6 +79,53 @@ export async function updateCourse(
   return result.rows[0] ?? null;
 }
 
+export interface CourseDeadline {
+  course_id: string;
+  title: string;
+  thumbnail: string | null;
+  youtube_url: string;
+  deadline: Date;
+}
+
+/** Returns courses with a deadline assigned to any group this user belongs to */
+export async function getCoursesWithDeadlinesForUser(userId: string): Promise<CourseDeadline[]> {
+  const result = await pool.query<CourseDeadline>(
+    `SELECT DISTINCT ON (c.id)
+       c.id          AS course_id,
+       c.title,
+       c.thumbnail,
+       c.youtube_url,
+       gc.deadline
+     FROM courses c
+     JOIN group_courses gc  ON c.id = gc.course_id
+     JOIN group_members gm  ON gc.group_id = gm.group_id
+     WHERE gm.user_id = $1
+       AND gc.deadline IS NOT NULL
+     ORDER BY c.id, gc.deadline ASC`,
+    [userId]
+  );
+  return result.rows;
+}
+
+/** Returns the earliest deadline for a course for the given user (across all their groups) */
+export async function getCourseDeadlineForUser(
+  userId: string,
+  courseId: string
+): Promise<Date | null> {
+  const result = await pool.query<{ deadline: Date }>(
+    `SELECT gc.deadline
+     FROM group_courses gc
+     JOIN group_members gm ON gc.group_id = gm.group_id
+     WHERE gm.user_id = $1
+       AND gc.course_id = $2
+       AND gc.deadline IS NOT NULL
+     ORDER BY gc.deadline ASC
+     LIMIT 1`,
+    [userId, courseId]
+  );
+  return result.rows[0]?.deadline ?? null;
+}
+
 export async function deleteCourse(id: string): Promise<boolean> {
   const result = await pool.query(
     "DELETE FROM courses WHERE id = $1",

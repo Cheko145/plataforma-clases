@@ -16,6 +16,7 @@ interface VideoPlayerProps {
   onDuration?: (duration: number) => void;
   onPlay?: () => void;
   onPause?: () => void;
+  onEnded?: () => void;
 }
 
 export default function VideoPlayer({
@@ -25,6 +26,7 @@ export default function VideoPlayer({
   onDuration,
   onPlay,
   onPause,
+  onEnded,
 }: VideoPlayerProps) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -52,6 +54,7 @@ export default function VideoPlayer({
         }
         onPlay={onPlay}
         onPause={onPause}
+        onEnded={onEnded}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import LessonClient from '@/components/LessonClient';
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getCoursesByUserId } from "@/lib/courses-db";
+import { getCoursesByUserId, getCourseDeadlineForUser } from "@/lib/courses-db";
 
 interface PageProps {
   params: Promise<{ id: string; videoId: string }>;
@@ -14,11 +14,14 @@ export default async function ClaseDinamica({ params }: PageProps) {
   }
   const { id, videoId } = await params;
 
+  let deadline: Date | null = null;
+
   // Los admins tienen acceso total; los alumnos solo a sus cursos de grupo
   if (session.user.role !== "admin") {
     const accessibleCourses = await getCoursesByUserId(session.user.id!);
     const hasAccess = accessibleCourses.some((c) => c.id === id);
     if (!hasAccess) redirect("/");
+    deadline = await getCourseDeadlineForUser(session.user.id!, id);
   }
 
   return (
@@ -52,6 +55,7 @@ export default async function ClaseDinamica({ params }: PageProps) {
           videoId={videoId}
           courseId={id}
           userName={session.user.name ?? "Estudiante"}
+          deadline={deadline ? deadline.toISOString() : null}
         />
       </main>
     </div>

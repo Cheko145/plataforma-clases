@@ -103,6 +103,37 @@ CREATE TABLE IF NOT EXISTS public.group_courses (
   CONSTRAINT gc_course_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE
 );
 
+-- 9. NOTIFICACIONES DE ALUMNOS
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id           text        NOT NULL DEFAULT (gen_random_uuid())::text,
+  user_id      text        NOT NULL,
+  title        text        NOT NULL,
+  message      text        NOT NULL,
+  type         text        NOT NULL, -- 'course_assigned' | 'group_assigned' | 'admin_message'
+  related_course_id text,
+  is_read      boolean     NOT NULL DEFAULT false,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT notifications_pkey      PRIMARY KEY (id),
+  CONSTRAINT notifications_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+
+-- 10. REGISTRO DE VIDEOS VISTOS
+CREATE TABLE IF NOT EXISTS public.video_watches (
+  user_id    text        NOT NULL,
+  course_id  text        NOT NULL,
+  watched_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT video_watches_pkey    PRIMARY KEY (user_id, course_id),
+  CONSTRAINT vw_user_fkey   FOREIGN KEY (user_id)   REFERENCES public.users(id)    ON DELETE CASCADE,
+  CONSTRAINT vw_course_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)  ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_video_watches_user_id ON public.video_watches(user_id);
+
+-- Migración: agregar deadline y mensaje admin a group_courses
+ALTER TABLE public.group_courses
+  ADD COLUMN IF NOT EXISTS deadline      timestamptz,
+  ADD COLUMN IF NOT EXISTS admin_message text;
+
 -- SEED: migrar curso existente de data/courses.ts
 INSERT INTO public.courses (id, title, description, thumbnail, youtube_url, duration)
 VALUES (

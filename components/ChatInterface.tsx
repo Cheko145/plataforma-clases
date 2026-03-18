@@ -12,6 +12,7 @@ interface ChatInterfaceProps {
   videoDuration: number;
   onQuestionTriggered: () => void;
   onAnswerSubmitted: () => void;
+  gradeDisabled?: boolean;
 }
 
 export default function ChatInterface({
@@ -23,6 +24,7 @@ export default function ChatInterface({
   videoDuration,
   onQuestionTriggered,
   onAnswerSubmitted,
+  gradeDisabled = false,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
@@ -99,9 +101,10 @@ export default function ChatInterface({
         {
           body: {
             videoId: id,
-            isStudentAnswer: true,
+            // When past deadline, don't record the answer as graded
+            isStudentAnswer: !gradeDisabled,
             pendingQuestion: currentPending,
-            courseId,
+            courseId: gradeDisabled ? undefined : courseId,
           }
         }
       );

@@ -31,6 +31,8 @@ interface CourseBasic {
 interface GroupCourse {
   course_id: string;
   title: string;
+  deadline?: string | null;
+  admin_message?: string | null;
 }
 
 type Tab = "alumnos" | "cursos";
@@ -59,6 +61,12 @@ export default function GroupManager() {
   // Búsqueda en listas
   const [studentSearch, setStudentSearch] = useState("");
   const [courseSearch, setCourseSearch] = useState("");
+
+  // Modal de asignación de curso (con deadline y mensaje)
+  const [assignModal, setAssignModal] = useState<{ courseId: string; title: string } | null>(null);
+  const [assignDeadline, setAssignDeadline] = useState("");
+  const [assignMessage, setAssignMessage] = useState("");
+  const [assigning, setAssigning] = useState(false);
 
   const fetchGroups = useCallback(async () => {
     const res = await fetch("/api/groups");
@@ -173,28 +181,66 @@ export default function GroupManager() {
     setSelectedGroup(prev => prev ? { ...prev, member_count: prev.member_count + (isMember ? -1 : 1) } : null);
   }
 
-  async function toggleCourse(courseId: string, isAssigned: boolean) {
-    if (!selectedGroup) return;
-    const method = isAssigned ? "DELETE" : "POST";
+  function openAssignModal(course: CourseBasic) {
+    setAssignModal({ courseId: course.id, title: course.title });
+    setAssignDeadline("");
+    setAssignMessage("");
+  }
+
+  async function handleAssignCourse() {
+    if (!selectedGroup || !assignModal) return;
+    setAssigning(true);
     await fetch(`/api/groups/${selectedGroup.id}/courses`, {
-      method,
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courseId }),
+      body: JSON.stringify({
+        courseId: assignModal.courseId,
+        deadline: assignDeadline || undefined,
+        adminMessage: assignMessage.trim() || undefined,
+      }),
     });
-    if (isAssigned) {
-      setGroupCourses(prev => prev.filter(c => c.course_id !== courseId));
-    } else {
-      const course = allCourses.find(c => c.id === courseId);
-      if (course) {
-        setGroupCourses(prev => [...prev, { course_id: course.id, title: course.title }]);
-      }
+    const course = allCourses.find(c => c.id === assignModal.courseId);
+    if (course) {
+      setGroupCourses(prev => [...prev, {
+        course_id: course.id,
+        title: course.title,
+        deadline: assignDeadline || null,
+        admin_message: assignMessage.trim() || null,
+      }]);
     }
     setGroups(prev => prev.map(g =>
       g.id === selectedGroup.id
-        ? { ...g, course_count: g.course_count + (isAssigned ? -1 : 1) }
+        ? { ...g, course_count: g.course_count + 1 }
         : g
     ));
-    setSelectedGroup(prev => prev ? { ...prev, course_count: prev.course_count + (isAssigned ? -1 : 1) } : null);
+    setSelectedGroup(prev => prev ? { ...prev, course_count: prev.course_count + 1 } : null);
+    setAssignModal(null);
+    setAssigning(false);
+  }
+
+  async function removeCourse(courseId: string) {
+    if (!selectedGroup) return;
+    await fetch(`/api/groups/${selectedGroup.id}/courses`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId }),
+    });
+    setGroupCourses(prev => prev.filter(c => c.course_id !== courseId));
+    setGroups(prev => prev.map(g =>
+      g.id === selectedGroup.id
+        ? { ...g, course_count: g.course_count - 1 }
+        : g
+    ));
+    setSelectedGroup(prev => prev ? { ...prev, course_count: prev.course_count - 1 } : null);
+  }
+
+  async function toggleCourse(courseId: string, isAssigned: boolean) {
+    if (isAssigned) {
+      await removeCourse(courseId);
+    } else {
+      const course = allCourses.find(c => c.id === courseId);
+      if (course) openAssignModal(course);
+    }
   }
 
   const memberIds = new Set(members.map(m => m.user_id));
@@ -373,12 +419,20 @@ export default function GroupManager() {
                     ) : (
                       filteredCourses.map(course => {
                         const isAssigned = assignedCourseIds.has(course.id);
+                        const assignedCourse = isAssigned ? groupCourses.find(c => c.course_id === course.id) : null;
                         return (
                           <div
                             key={course.id}
-                            className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-slate-50 transition-colors"
+                            className="flex items-start justify-between py-2 px-3 rounded-xl hover:bg-slate-50 transition-colors"
                           >
-                            <p className="text-sm font-medium text-slate-700 max-w-[280px] truncate">{course.title}</p>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-700 truncate">{course.title}</p>
+                              {assignedCourse?.deadline && (
+                                <p className="text-[11px] text-amber-600 mt-0.5">
+                                  Límite: {new Date(assignedCourse.deadline).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
+                                </p>
+                              )}
+                            </div>
                             <button
                               onClick={() => toggleCourse(course.id, isAssigned)}
                               className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex-shrink-0 ml-2 ${
@@ -407,6 +461,64 @@ export default function GroupManager() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal asignación de curso */}
+      {assignModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-800">Asignar video al grupo</h3>
+              <button onClick={() => setAssignModal(null)} className="text-slate-400 hover:text-slate-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-slate-700 font-medium truncate">{assignModal.title}</p>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">
+                  Fecha límite <span className="text-slate-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={assignDeadline}
+                  onChange={e => setAssignDeadline(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Después de esta fecha el video será accesible pero no calificado.</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">
+                  Mensaje para los alumnos <span className="text-slate-400 font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  value={assignMessage}
+                  onChange={e => setAssignMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Ej: Hola alumnos, les dejo este video de tarea. Contesten las preguntas antes de la fecha límite."
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => setAssignModal(null)}
+                className="text-sm text-slate-500 hover:text-slate-700 px-4 py-2 rounded-xl border border-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAssignCourse}
+                disabled={assigning}
+                className="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {assigning ? "Asignando…" : "Asignar y notificar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
