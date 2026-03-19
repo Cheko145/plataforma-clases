@@ -227,7 +227,7 @@ export default function CourseManager() {
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="Ej: Unidad 1: Introducción al marketing"
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                 />
               </div>
 
@@ -238,7 +238,7 @@ export default function CourseManager() {
                   value={form.youtube_url}
                   onChange={e => setForm(f => ({ ...f, youtube_url: e.target.value }))}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                 />
                 {previewId && (
                   <div className="mt-2 flex items-center gap-2">
@@ -260,7 +260,7 @@ export default function CourseManager() {
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="Ej: Propiedad Intelectual"
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                   />
                 </div>
                 <div>
@@ -270,7 +270,7 @@ export default function CourseManager() {
                     value={form.duration}
                     onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
                     placeholder="Ej: 12:34"
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                   />
                 </div>
               </div>

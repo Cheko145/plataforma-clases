@@ -371,7 +371,7 @@ export default function GroupManager() {
                     value={studentSearch}
                     onChange={e => setStudentSearch(e.target.value)}
                     placeholder="Buscar alumno…"
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-800 placeholder:text-slate-400 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                   />
                   <div className="space-y-1 max-h-72 overflow-y-auto">
                     {filteredStudents.length === 0 ? (
@@ -411,7 +411,7 @@ export default function GroupManager() {
                     value={courseSearch}
                     onChange={e => setCourseSearch(e.target.value)}
                     placeholder="Buscar curso…"
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-800 placeholder:text-slate-400 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                   />
                   <div className="space-y-1 max-h-72 overflow-y-auto">
                     {filteredCourses.length === 0 ? (
@@ -486,7 +486,7 @@ export default function GroupManager() {
                   type="datetime-local"
                   value={assignDeadline}
                   onChange={e => setAssignDeadline(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">Después de esta fecha el video será accesible pero no calificado.</p>
               </div>
@@ -499,7 +499,7 @@ export default function GroupManager() {
                   onChange={e => setAssignMessage(e.target.value)}
                   rows={3}
                   placeholder="Ej: Hola alumnos, les dejo este video de tarea. Contesten las preguntas antes de la fecha límite."
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-none"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-none"
                 />
               </div>
             </div>
@@ -547,7 +547,7 @@ export default function GroupManager() {
                   value={groupName}
                   onChange={e => setGroupName(e.target.value)}
                   placeholder="Ej: Grupo A — Mañana"
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                 />
               </div>
               <div>
@@ -557,7 +557,7 @@ export default function GroupManager() {
                   value={groupDesc}
                   onChange={e => setGroupDesc(e.target.value)}
                   placeholder="Ej: Cohorte 2025 — Turno matutino"
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                 />
               </div>
               {groupError && (
